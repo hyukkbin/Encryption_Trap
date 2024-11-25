@@ -24,7 +24,7 @@ def Tuning(X, d, zeta):
     M = (2**b) - 1
     
     # Uncomment this for more restrictive detection
-    M=X
+    # M=X
     
     # Step 3: determine kappa_min
     kappa_min = ((zeta+1)**d)*(M**d)
@@ -36,7 +36,7 @@ def Tuning(X, d, zeta):
     
     # Step 4: determine p_min
     # kappa, _ = keygen(rho, rho_, bit_length=None) # Can use kappa for less restrictive detection
-    p_min = ((zeta+0.5)**d)*(M+(kappa_min**2))**d # Can modify 0.5 to adjust restriction on detection
+    p_min = ((zeta+1)**d)*(M+(kappa_min**2))**d # Can modify 0.5 to adjust restriction on detection
     
     # Step 5: determine lambda_min
     lam = int(math.ceil(math.log2(p_min+1)))

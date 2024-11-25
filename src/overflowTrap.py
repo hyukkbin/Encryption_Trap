@@ -52,8 +52,7 @@ class EncController():
         self.OverflowTrap(enc_u)
         
         # decrypting final u
-        dec_u = mat_dec(enc_u, self.kappa, self.p, self.delta**self.d)
-        dec_u[0] = dec_u[0]/self.delta # accounting for different encoding depth for this case in the first row of the control
+        dec_u = mat_dec(enc_u, self.kappa, self.p, self.delta**2)
         
         # printing stuff
         print(f'Expected u: {u}')
@@ -82,11 +81,14 @@ class EncController():
         for item in var_dict:
             
             # This is specific to this test case where the w_r needs to have a deeper encoding factor to be added to the rest of the eqn
-            if item == 'w_r':
-                unique_delta = self.delta**3
-            else: unique_delta=self.delta
+            if item == 'k_y' or item == 'k_theta':
+                unique_delta = 1
+            elif item =='w_r':
+                unique_delta = self.delta**2
+            else: 
+                unique_delta=self.delta
             
-            # Encrypt each needed cariable
+            # Encrypt each needed variable
             enc_var_dict[item] = enc(var_dict[item], self.kappa, self.p, self.mod, unique_delta)
         
         # Calculate control
@@ -100,8 +102,7 @@ class EncController():
                     enc_var_dict["k_x"],
                     enc_var_dict["x_e"],
                 self.mod), 
-            self.mod)], 
-            
+            self.mod)],
             [add(
                 enc_var_dict["w_r"],
                 mult(
@@ -164,4 +165,5 @@ class EncController():
         # Encryption trap logic
         if any(enc_u % self.p > self.p_min) or any((enc_u % self.p) % self.kappa > self.kappa_min):
             self.trap = True
+        else: self.trap = False
         return enc_u
