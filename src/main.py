@@ -13,20 +13,25 @@ import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
              
 def Run():
     
-    # Parameters to set:
+    # Encryption parameters to set:
     delta = 10000
     data = 'src/experimentdata.csv'
     max_num = MaxNum(delta, data) # find the max number in the nominal unattacked case
-    degree = 3
-    num_vars = 1
+    degree = 3 # Degree of the u polynomial
+    num_vars = 1 # Number of variables in the polynomial
     
+    # Attack features:
     test_multiple = False
     num_tests_per_data = 100
-    beta_range = 1 #[1,50]
-    scenario = "scale" # for data testing
+    beta_range = -1 #[1,50] This variable should be set as scalar if test_multiple = False and vice versa
+    
+    # Attacks
+    scenario = "no attack" # no attack, reflection, scale. This is testing the trap on the provided data
+    attack_type = "mult_invar" # add, mult_invar, mult_var, quad. This is testing attack types from the overflow trap paper. To just test the data, use attack_type = "mult_invar" and beta_range = 1
     
     # Tune these for the trap!
     trap_obj = EncController(max_num=max_num, deg=degree, num_vars=num_vars, delta=1/delta)
@@ -39,7 +44,7 @@ def Run():
         idx_jump = 20
     else: idx_jump = 0
 
-    # This loop represents the collection of data from sensors and feeding it into the controller and applying the encryption trap
+    # Initialize variables
     num_detections = 0
     t_vec = []
     x_vec = []
@@ -48,6 +53,9 @@ def Run():
     x_vec_nominal = []
     y_vec_nominal = []
     theta_vec_nominal = []
+    
+    # This loop represents the collection of data from sensors and feeding it into the controller and applying the encryption trap
+    start_time = time.time()
     for idx, row in data.iloc[2:].iterrows():
         row = row.tolist()
 
@@ -68,8 +76,8 @@ def Run():
         u = np.array([[var_dict["v_r"]*math.cos(var_dict["theta_e"]) + var_dict["k_x"]*var_dict["x_e"]],
             [var_dict["w_r"] + var_dict["v_r"]*(var_dict["k_y"]*var_dict["y_e"] + var_dict["k_theta"]*math.sin(var_dict["theta_e"]))]])
         
-        # Test detector
-        num_detections += ApplyDetector(trap_obj,var_dict,u,num_tests=num_tests_per_data, beta_range=beta_range,test_multiple = test_multiple)
+        # Check for attack
+        num_detections += ApplyDetector(trap_obj,var_dict,u,num_tests=num_tests_per_data, beta_range=beta_range,test_multiple = test_multiple,attack_type=attack_type)
         
         # Plotting data
         t_vec.append(idx-2)
@@ -80,8 +88,10 @@ def Run():
         y_vec.append(float(row[1+idx_jump]))
         theta_vec.append(float(row[2+idx_jump]))
     
-    print(f'of {idx-2} tests, {num_detections} attacks detected') 
     
+    print(f'of {idx-2} tests, {num_detections} attacks detected, at {round(((time.time() - start_time)/(idx-2))*1000,3)} milliseconds per iteration') 
+    
+    # Plotting for perfect FDIA data
     if scenario is not None:
         plt.subplot(3,1,1)
         plt.plot(t_vec,x_vec)
@@ -94,7 +104,8 @@ def Run():
         plt.subplot(3,1,3)
         plt.plot(t_vec,theta_vec)
         plt.plot(t_vec,theta_vec_nominal)
-        
+    
+    # Plotting for overflow trap paper attacks 
     else:
         plt.subplot(3,1,1)
         plt.plot(t_vec,x_vec_nominal)

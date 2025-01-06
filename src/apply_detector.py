@@ -3,11 +3,11 @@ This function runs iterations over the encryption trap in order to test its accu
 '''
 import numpy as np
 
-def ApplyDetector(trap_obj,var_dict,u,num_tests,beta_range,test_multiple = False):
+def ApplyDetector(trap_obj,var_dict,u,num_tests,beta_range,attack_type,test_multiple = False):
     
     # Test one Beta
     if test_multiple is False:
-        return trap_obj.ApplyEncCalc_WithEncTrap(var_dict,u,beta=beta_range)
+        return trap_obj.ApplyEncCalc_WithEncTrap(var_dict,u,beta=beta_range,attack_type=attack_type)
     
     # Test lots of Betas
     else:

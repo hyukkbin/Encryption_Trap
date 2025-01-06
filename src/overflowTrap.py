@@ -24,12 +24,12 @@ class EncController():
         self.lam, self.rho, self.rho_, self.p_min, self.kappa_min = Tuning(self.X, self.d, self.zeta)
         self.delta = delta
         
-        # Generate new lambda for trap and corresponding mod
+        # Generate new lambda for trap and corresponding mod (to increase probability of detection)
         self.new_lam = self.lam + 10
         self.kappa, self.p = keygen(self.rho, self.rho_, self.new_lam)
         self.mod = pgen(self.new_lam, self.rho_, self.p)
         
-    def ApplyEncCalc_WithEncTrap(self,state_dict,u,beta):
+    def ApplyEncCalc_WithEncTrap(self,state_dict,u,beta,attack_type):
         '''
         Application of encryption and overflow trap
         
@@ -45,13 +45,13 @@ class EncController():
         # Encrypted Control Execution... change this to the controller you need
         enc_u = self.EncControl(state_dict)
         
-        #FDIA
-        enc_u = self.attack(enc_u, beta, attack_type="mult_invar")
+        # FDIA
+        enc_u = self.attack(enc_u, beta, attack_type=attack_type)
 
         # Trap
         self.OverflowTrap(enc_u)
         
-        # decrypting final u
+        # Decrypting final u
         dec_u = mat_dec(enc_u, self.kappa, self.p, self.delta**2)
         
         # printing stuff
@@ -80,7 +80,7 @@ class EncController():
         enc_var_dict = {}
         for item in var_dict:
             
-            # This is specific to this test case where the w_r needs to have a deeper encoding factor to be added to the rest of the eqn
+            # This is specific to this test case where the w_r needs to have a deeper encoding factor to be added to the rest of the eqn (to balance the encoding depths)
             if item == 'k_y' or item == 'k_theta':
                 unique_delta = 1
             elif item =='w_r':
