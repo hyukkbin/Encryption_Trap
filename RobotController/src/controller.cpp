@@ -24,6 +24,38 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "lab_interfaces/msg/command.hpp"
 
+
+/**
+ * Current Code Summary
+ * 
+ * "labdemonode" - ROS Node
+ * Publishers: command velocity
+ * Subscribers: odometry
+ * 
+ * Callbacks: Timer -- runs the controller.
+ * 
+ * Ultimate goal: Apply encryption to controller.
+ * 
+ * I need: 
+ * 
+ * new message format for sending through encrypted information.
+ * 
+ * 
+ * 
+ * To robot : command velocity, (2) + keys
+ * 
+ * To controller : system position (3) + stuff needed for error computation ( cos/sin ) + keys
+ * 
+ * publisher/subscriber for the encryption keys.
+ * 
+ * node that will run on the robot and handle encryption.
+ * 
+ * the encrypted version of the controller.
+ * 
+ * encrypted version of ATPA and CA
+ * 
+ */ 
+
 using namespace dyers;
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -124,6 +156,7 @@ class LabDemoNode : public rclcpp::Node
       v_r = std::sqrt(v_x*v_x+v_y*v_y);
       w_r = (v_x * v_y) / (v_r*v_r);
 
+      //Return reference every 20 runs
     if(count_%20 == 0)
         // RCLCPP_INFO(this->get_logger(), " Observed x: '%f', y: '%f', th: '%f'", robotPose_.x,robotPose_.y,robotPose_.theta);       
 
@@ -131,6 +164,8 @@ class LabDemoNode : public rclcpp::Node
     }
     float w_r;
     float v_r;
+    
+    // This function computes the error from the reference and the subscribed odometry
     posture errorUpdate(const posture ref_)
     {
       posture err_ = ref_;
@@ -141,6 +176,7 @@ class LabDemoNode : public rclcpp::Node
       return err_;
     }
 
+    // This function is the actual controller that takes in the errors from the previous function.
     geometry_msgs::msg::Twist controlCommand(posture err_)
     {
       float K_x, K_y, K_th;
@@ -156,6 +192,7 @@ class LabDemoNode : public rclcpp::Node
       float w = w_r + v_r * (K_y * err_.y + K_th * std::sin(err_.theta));
       // auto [v_m, w_m] = attackU(v, w, count_);
 
+      // This is where FDIA used to be applied. Should change to encrypted version
       float v_m = v;
       float w_m = w;
 
@@ -167,7 +204,7 @@ class LabDemoNode : public rclcpp::Node
     int lim = 210;
     float delta = std::atan(1) / lim;
 
-
+    //This grabs the odometry data from the robot and translates it to global pose.
     void odom_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
     {
 
