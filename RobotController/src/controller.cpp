@@ -12,8 +12,6 @@
 #include "std_msgs/msg/u_int8_multi_array.hpp"
 
 
-
-
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include "tf2_msgs/msg/tf_message.hpp"
@@ -41,31 +39,43 @@ struct posture
 class LabDemoNode : public rclcpp::Node
 {
   public:
+    //Node for controller
     LabDemoNode()
     : Node("controller"), count_(0)
     {
-
+      //Publisher to /encnum topic this is one encrypted number. Should be changed to a message of vector of encnum for use in controller. 
       publisher_enc = this -> create_publisher<std_msgs::msg::UInt8MultiArray>("/encnum",10);
 
+
+      // These were the publishers for the command velocity and reference. ** I don't remember what ref is for..  I feel like this is not needed
       // publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);      
       // ref_pub_ = this->create_publisher<lab_interfaces::msg::Command>("/ref", 10);      
+
+      // This subscribes to the odometry message of the robot. This should be changed to a vector of needed information that is under HE.
       sub_odom_ = this->create_subscription<tf2_msgs::msg::TFMessage>(
       "/tf", 10, std::bind(&LabDemoNode::odom_callback, this, _1));  
 
+      // Timer for callback. This is setting the update frequency of the controller.
       timer_ = this->create_wall_timer(
       10ms, std::bind(&LabDemoNode::timer_callback, this));
     }
 
+
   private:
+    //this is the controller. 
     void timer_callback()
     {
+
       auto message = geometry_msgs::msg::Twist();
       auto ref = refUpdate();
       auto refmsg = lab_interfaces::msg::Command();
       refmsg.x = ref.x;
       refmsg.y = ref.y;
       refmsg.theta = ref.theta;
+      //calling the function that gets the error
       auto err = errorUpdate(ref);
+
+      //calling the function that gets the controll commands
       message = controlCommand(err);
       count_++;
       // RCLCPP_INFO(this->get_logger(), "count: '%i', x_r: '%f', y_r: '%f', th_r: '%f'", (int)count_ , ref.x,ref.y,ref.theta);
@@ -75,34 +85,42 @@ class LabDemoNode : public rclcpp::Node
       }
 
 
-
+      // This was demoing ability to send ciphertext.
       std_msgs::msg::UInt8MultiArray sendingThis;
       sendingThis.data = encNum;
 
       publisher_enc -> publish( sendingThis );
 
 
-
+      // This publishes to cmd_val topic for turtlebot.
       // publisher_->publish(message);
+
+      // Still not sure what this does
       // ref_pub_->publish(refmsg);
     }
 
+    // Computes reference based on timer count. 
     posture refUpdate()
     {
     
       float x,y,theta,v_x,v_y;
 
+      // computes current time based on timer frequency.
       float sec = count_/100.00;
       float period = 0.15;
+
+      //This is the actual trajectory
       x =  0.01 * sec;
       y =  0.025 * std::sin(sec * period) + 0.05;
-      
-      v_x = 0.01*(0.01) / 0.01;
-      v_y = 0.025 * period *std::cos(period*sec) ;
 
-      
+      //Analytic derivative for desired velocity and orientation.
+      v_x = 0.01*(0.01) / 0.01;
+      v_y = 0.025 * period *std::cos(period*sec);
+
+      //Get orientation based on tangential velocity
       theta = std::atan2(v_y,v_x);
 
+      //Set desired velocities
       v_r = std::sqrt(v_x*v_x+v_y*v_y);
       w_r = (v_x * v_y) / (v_r*v_r);
 
@@ -129,7 +147,7 @@ class LabDemoNode : public rclcpp::Node
 
       K_x = 2;
       K_y = 2000;
-      K_th = 100; 
+      K_th = 100; encNum
 
       auto command_ = geometry_msgs::msg::Twist();
       // linear
@@ -180,9 +198,6 @@ class LabDemoNode : public rclcpp::Node
       tf2::Matrix3x3 m(qmap_);
       double roll, pitch, yaw;
       m.getRPY(roll, pitch, yaw);
-           // K_x = 0.1;
-      // K_y = 20;
-      // K_th = 10; 
       auto qp_ = od_q_;
       tf2::Matrix3x3 ma(qp_);
       double oroll, opitch, oyaw;
@@ -230,7 +245,7 @@ class LabDemoNode : public rclcpp::Node
     PKey key = dyers::keygen(bit_length,rho,rho_);
     wide_uint_t mod = pgen(bit_length,rho_,key.p);
     dyers::cipher_text c1 = dyers::encrypt(24,key,mod);
-    
+    //I need to run this function ctext2arr to be able to save a ciphertext to a 8bit array and send
     std::vector<uint8_t> encNum = c1.ctext2arr();
 
 
