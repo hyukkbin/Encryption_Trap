@@ -1,0 +1,85 @@
+# Python
+*.py[cod]
+*.py[cod].*
+*$py.class
+__pycache__/
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+pip-wheel-metadata/
+
+# C/C++
+*.o
+*.out
+*.lo
+*.la
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.obj
+*.d
+*.pdb
+*.ilk
+*.app
+*.lib
+*.manifest
+*.exp
+
+# VSCode
+.vscode/
+*.code-workspace
+*.history
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.DS_Store
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Unit test / coverage reports
+*.cover
+*.coverage
+*.coverage.*
+*.coveragerc
+*_test.go
+nosetests.xml
+coverage.xml
+*.test.py
+htmlcov/
+.tox/
+.pytest_cache/
+.cache/
+
+# Distribution / packaging
+*.dist-info/
+.installed.cfg
+*.egg-info/
+MANIFEST
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+build/
+install_manifest.txt
+
+# Auto-generated files (e.g., from swig)
+*.swig
+*.i
+
+# Miscellaneous
+!README.md

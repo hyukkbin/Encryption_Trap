@@ -12,5 +12,6 @@
         "/home/hkwon82/install/laser_subscriber/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages"
-    ]
+    ],
+    "cmake.sourceDirectory": "C:/Users/Hyukbin/Research/Encryption_Trap/RobotController"
 }
