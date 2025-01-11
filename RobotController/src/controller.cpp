@@ -98,7 +98,7 @@ class LabDemoNode : public rclcpp::Node
     void timer_callback()
     {
 
-      auto message = geometry_msgs::msg::Twist();
+      // auto message = geometry_msgs::msg::Twist();
       auto ref = refUpdate();
       auto refmsg = lab_interfaces::msg::Command();
       refmsg.x = ref.x;
@@ -255,6 +255,79 @@ class LabDemoNode : public rclcpp::Node
       found_od = false;
     }
 
+    /**
+     * Called before controller is run.
+     * 
+     * updates two quantities mu and gamma
+     * 
+     * input is last controller command and feedback output.
+     * Also need last iteration mu an gamma.
+     * 1. use approximation for each plant model.
+     * 2. use mu and gamma to run simulation for both plants.
+     * 3. use output of simulations to compute gamma.
+     * 4. use gamma in the controller to compute mu.
+     * 5. update gamma and mu.
+     */
+    void covert_attack(){
+
+      //original signal
+      auto th = robotPose_.theta;
+      auto xx = robotPose_.x;
+      auto yy = robotPose_.y;
+
+      posture poseCopy = robotPose_;
+
+      auto vv = message.linear.x;
+      auto ww = message.angular.z;
+      
+      //modified signal
+
+      posture obsrv_td;
+      obsrv_td.theta = poseCopy.theta + gamma.theta;
+      obsrv_td.x = poseCopy.x + gamma.x;
+      obsrv_td.y = poseCopy.y + gamma.y;
+      auto v_tilde = vv + mu_v;
+      auto w_tilde = ww + mu_w;
+      
+      float ts = 0.02;
+
+      //simulation 1
+
+      auto gam1_x = vv * std::cos(obsrv_td.theta);
+      auto gam1_y = vv * std::sin(obsrv_td.theta);
+      auto gam1_th = ww;
+      
+      //simulation 2
+
+      auto gam2_x = v_tilde * std::cos(th);
+      auto gam2_y = v_tilde * std::sin(th);
+      auto gam2_th = w_tilde;
+      
+      //compute gamma
+      gamma.x = ts * (gam1_x - gam2_x);
+      gamma.y = ts * (gam1_y - gam2_y);
+      gamma.theta= ts * (gam1_th - gam2_th);
+
+      //run covert controller.
+      // desired disturbance - x, y no change, th + pi.
+      posture err_cov = {0,0,0};
+      // compute error
+      float c = std::cos(gamma.theta);
+      float s = std::sin(gamma.theta);
+      posture temp = {err_cov.x - robotPose_.x,err_cov.y - robotPose_.y,err_cov.theta - robotPose_.theta};
+      err_cov = (posture){temp.x*c+temp.y*s,-temp.x*s+temp.y*c,temp.theta};
+
+      // compute mu
+      // linear
+      mu_v = v_r_cov * std::cos(err_cov.theta) + K_x * err_cov.x;      
+      //angular
+      mu_w = w_r_cov + v_r_cov * (K_y * err_cov.y + K_th * std::sin(err_cov.theta));
+
+
+    }
+
+
+
       geometry_msgs::msg::Vector3 pose_;
       geometry_msgs::msg::Quaternion quat_;
 
@@ -271,7 +344,13 @@ class LabDemoNode : public rclcpp::Node
     rclcpp::Publisher<lab_interfaces::msg::Command>::SharedPtr ref_pub_;
     rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr publisher_enc;
 
+    float mu_v = 0;
+    float mu_w = 0;
+    posture gamma;
+
     struct posture robotPose_;
+    geometry_msgs::msg::Twist message = geometry_msgs::msg::Twist();
+
     size_t count_;
     float K_x, K_y, K_th;
 
